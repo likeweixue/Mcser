@@ -1,0 +1,14 @@
+# 编译产物
+build/
+*.o
+*.obj
+*.exe
+*.res
+
+# 运行时生成
+mcser_debug.log
+mcser_result.txt
+
+# 系统
+.DS_Store
+Thumbs.db

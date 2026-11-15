@@ -1,0 +1,33 @@
+# Mcser 引擎功能测试 (macOS 原生编译, 不依赖 Windows)
+ZIG      := $(HOME)/mcser-dev/toolchain/zig
+OBJ      := build/objmac
+OUT      := build/test_engine
+NATIVE   := 1
+
+SDK_FLAGS := -O2 -DUNICODE -D_UNICODE
+
+CXXFLAGS := -std=c++17 -O2 -DUNICODE -D_UNICODE
+
+include sdk_sources.mk
+
+$(OBJ)/app_engine.o: src/engine.cpp
+	@mkdir -p $(dir $@)
+	$(ZIG) c++ $(CXXFLAGS) -I. -c $< -o $@
+
+$(OBJ)/app_cli_test.o: src/cli_test.cpp
+	@mkdir -p $(dir $@)
+	$(ZIG) c++ $(CXXFLAGS) -I. -c $< -o $@
+
+$(OUT): $(SDK_OBJS) $(OBJ)/app_engine.o $(OBJ)/app_cli_test.o
+	@mkdir -p build
+	@find $(OBJ) -name "*.o" -size 0 -delete
+	/usr/bin/clang++ $(SDK_OBJS) $(OBJ)/app_engine.o $(OBJ)/app_cli_test.o -lpthread -o $(OUT)
+	@ls -lh $(OUT)
+
+test: $(OUT)
+	./$(OUT)
+
+clean:
+	rm -rf build
+
+.PHONY: test clean

@@ -1,0 +1,131 @@
+# Mcser - Windows GUI 版 SFX 自解压模块 (从 7-Zip SDK SFXSetup 源码编译)
+ZIG      := $(HOME)/mcser-dev/toolchain/zig
+TARGET   := x86_64-windows-gnu
+SDK      := third_party/7zip
+OBJ      := build/objsfx
+OUT      := build/7z.sfx
+
+SDK_FLAGS := -target $(TARGET) -O2 -DUNICODE -D_UNICODE \
+  -DZ7_NO_REGISTRY -DZ7_EXTRACT_ONLY -DZ7_NO_READ_FROM_CODER -DZ7_SFX -DZ7_NO_CRYPTO
+
+INCS := -I$(SDK)/CPP/7zip/Bundles/SFXSetup \
+  -I$(SDK)/CPP/7zip/UI/FileManager \
+  -I$(SDK)/CPP/7zip/UI/FileManager/res \
+  -I$(SDK)/CPP/7zip/UI/Explorer \
+  -I$(SDK)/CPP/7zip
+
+SFX_SRC := \
+  $(SDK)/CPP/7zip/Bundles/SFXSetup/SfxSetup.cpp \
+  $(SDK)/CPP/7zip/Bundles/SFXSetup/ExtractCallbackSfx.cpp \
+  $(SDK)/CPP/7zip/Bundles/SFXSetup/ExtractEngine.cpp \
+  $(SDK)/CPP/Common/CommandLineParser.cpp \
+  $(SDK)/CPP/Common/CRC.cpp \
+  $(SDK)/CPP/Common/IntToString.cpp \
+  $(SDK)/CPP/Common/NewHandler.cpp \
+  $(SDK)/CPP/Common/MyString.cpp \
+  $(SDK)/CPP/Common/StringConvert.cpp \
+  $(SDK)/CPP/Common/TextConfig.cpp \
+  $(SDK)/CPP/Common/UTFConvert.cpp \
+  $(SDK)/CPP/Common/MyVector.cpp \
+  $(SDK)/CPP/Common/Wildcard.cpp \
+  $(SDK)/CPP/Windows/DLL.cpp \
+  $(SDK)/CPP/Windows/ErrorMsg.cpp \
+  $(SDK)/CPP/Windows/FileDir.cpp \
+  $(SDK)/CPP/Windows/FileFind.cpp \
+  $(SDK)/CPP/Windows/FileIO.cpp \
+  $(SDK)/CPP/Windows/FileName.cpp \
+  $(SDK)/CPP/Windows/PropVariant.cpp \
+  $(SDK)/CPP/Windows/ResourceString.cpp \
+  $(SDK)/CPP/Windows/Synchronization.cpp \
+  $(SDK)/CPP/Windows/System.cpp \
+  $(SDK)/CPP/Windows/Window.cpp \
+  $(SDK)/CPP/Windows/Control/Dialog.cpp \
+  $(SDK)/CPP/7zip/Common/CreateCoder.cpp \
+  $(SDK)/CPP/7zip/Common/CWrappers.cpp \
+  $(SDK)/CPP/7zip/Common/FileStreams.cpp \
+  $(SDK)/CPP/7zip/Common/InBuffer.cpp \
+  $(SDK)/CPP/7zip/Common/FilterCoder.cpp \
+  $(SDK)/CPP/7zip/Common/LimitedStreams.cpp \
+  $(SDK)/CPP/7zip/Common/OutBuffer.cpp \
+  $(SDK)/CPP/7zip/Common/ProgressUtils.cpp \
+  $(SDK)/CPP/7zip/Common/PropId.cpp \
+  $(SDK)/CPP/7zip/Common/StreamBinder.cpp \
+  $(SDK)/CPP/7zip/Common/StreamObjects.cpp \
+  $(SDK)/CPP/7zip/Common/StreamUtils.cpp \
+  $(SDK)/CPP/7zip/Common/VirtThread.cpp \
+  $(SDK)/CPP/7zip/UI/Common/ArchiveOpenCallback.cpp \
+  $(SDK)/CPP/7zip/UI/Common/DefaultName.cpp \
+  $(SDK)/CPP/7zip/UI/Common/LoadCodecs.cpp \
+  $(SDK)/CPP/7zip/UI/Common/OpenArchive.cpp \
+  $(SDK)/CPP/7zip/UI/Explorer/MyMessages.cpp \
+  $(SDK)/CPP/7zip/UI/FileManager/FormatUtils.cpp \
+  $(SDK)/CPP/7zip/UI/FileManager/ProgressDialog.cpp \
+  $(SDK)/CPP/7zip/Archive/Common/CoderMixer2.cpp \
+  $(SDK)/CPP/7zip/Archive/Common/ItemNameUtils.cpp \
+  $(SDK)/CPP/7zip/Archive/Common/OutStreamWithCRC.cpp \
+  $(SDK)/CPP/7zip/Archive/7z/7zDecode.cpp \
+  $(SDK)/CPP/7zip/Archive/7z/7zExtract.cpp \
+  $(SDK)/CPP/7zip/Archive/7z/7zHandler.cpp \
+  $(SDK)/CPP/7zip/Archive/7z/7zIn.cpp \
+  $(SDK)/CPP/7zip/Archive/7z/7zRegister.cpp \
+  $(SDK)/CPP/7zip/Compress/Bcj2Coder.cpp \
+  $(SDK)/CPP/7zip/Compress/Bcj2Register.cpp \
+  $(SDK)/CPP/7zip/Compress/BcjCoder.cpp \
+  $(SDK)/CPP/7zip/Compress/BcjRegister.cpp \
+  $(SDK)/CPP/7zip/Compress/BranchMisc.cpp \
+  $(SDK)/CPP/7zip/Compress/BranchRegister.cpp \
+  $(SDK)/CPP/7zip/Compress/CopyCoder.cpp \
+  $(SDK)/CPP/7zip/Compress/CopyRegister.cpp \
+  $(SDK)/CPP/7zip/Compress/DeltaFilter.cpp \
+  $(SDK)/CPP/7zip/Compress/Lzma2Decoder.cpp \
+  $(SDK)/CPP/7zip/Compress/Lzma2Register.cpp \
+  $(SDK)/CPP/7zip/Compress/LzmaDecoder.cpp \
+  $(SDK)/CPP/7zip/Compress/LzmaRegister.cpp
+
+SFX_SRC_C := \
+  $(SDK)/C/7zStream.c \
+  $(SDK)/C/Alloc.c \
+  $(SDK)/C/Bcj2.c \
+  $(SDK)/C/Bra.c \
+  $(SDK)/C/Bra86.c \
+  $(SDK)/C/BraIA64.c \
+  $(SDK)/C/CpuArch.c \
+  $(SDK)/C/Delta.c \
+  $(SDK)/C/DllSecur.c \
+  $(SDK)/C/Lzma2Dec.c \
+  $(SDK)/C/Lzma2DecMt.c \
+  $(SDK)/C/LzmaDec.c \
+  $(SDK)/C/MtDec.c \
+  $(SDK)/C/Threads.c \
+  $(SDK)/C/7zCrc.c \
+  $(SDK)/C/7zCrcOpt.c
+
+SFX_OBJS := $(patsubst $(SDK)/CPP/%.cpp,$(OBJ)/%.o,$(SFX_SRC))
+SFX_OBJS += $(patsubst $(SDK)/C/%.c,$(OBJ)/c_%.o,$(SFX_SRC_C))
+SFX_RES  := $(OBJ)/sfx_res.res
+
+$(OBJ)/%.o: $(SDK)/CPP/%.cpp
+	@mkdir -p $(dir $@)
+	$(ZIG) c++ $(SDK_FLAGS) -std=c++17 $(INCS) -c $< -o $@
+
+$(OBJ)/c_%.o: $(SDK)/C/%.c
+	@mkdir -p $(dir $@)
+	$(ZIG) cc $(SDK_FLAGS) $(INCS) -c $< -o $@
+
+$(SFX_RES): $(SDK)/CPP/7zip/Bundles/SFXSetup/resource.rc
+	@mkdir -p $(OBJ)
+	cd $(SDK)/CPP/7zip/Bundles/SFXSetup && $(ZIG) rc /I. /I../.. /I../../UI/FileManager /c65001 resource.rc $(CURDIR)/$(SFX_RES)
+
+$(OUT): $(SFX_OBJS) $(SFX_RES)
+	$(ZIG) c++ -target $(TARGET) $(SFX_OBJS) $(SFX_RES) \
+	  -Wl,--subsystem,windows -s \
+	  -luser32 -lgdi32 -lcomctl32 -lcomdlg32 -loleaut32 -ladvapi32 -lshell32 \
+	  -o $(OUT)
+	@ls -lh $(OUT)
+
+sfx: $(OUT)
+
+clean:
+	rm -rf $(OBJ) $(OUT)
+
+.PHONY: sfx clean
