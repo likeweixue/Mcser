@@ -9,8 +9,8 @@
 #include <vector>
 
 #define APP_NAME     L"Mcser"
-#define APP_TITLE    L"Mcser 1.1.0 (64 位)"
-#define APP_VERSION  L"1.1.0"
+#define APP_TITLE    L"Mcser 1.2.0 (64 位)"
+#define APP_VERSION  L"1.2.0"
 
 #include "engine.h"
 
@@ -46,6 +46,7 @@ extern std::wstring g_curDir;   // 主窗口当前目录
 #define IDM_OPT_SETTINGS    128
 #define IDM_OPT_IMPORTEXPORT 129
 #define IDM_OPT_PROFILES    130
+#define IDM_OPT_SHELL       131
 
 #define IDM_HELP_TOPIC      132
 #define IDM_HELP_ABOUT      133

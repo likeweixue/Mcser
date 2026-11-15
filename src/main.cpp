@@ -139,6 +139,8 @@ static HMENU BuildMenus()
     AppendMenuW(mOpt, MF_STRING, IDM_OPT_SETTINGS, L"设置(S)...\tCtrl+S");
     AppendMenuW(mOpt, MF_STRING, IDM_OPT_IMPORTEXPORT, L"导入/导出(I)...");
     AppendMenuW(mOpt, MF_STRING, IDM_OPT_PROFILES, L"压缩配置文件(P)...");
+    AppendMenuW(mOpt, MF_SEPARATOR, 0, NULL);
+    AppendMenuW(mOpt, MF_STRING, IDM_OPT_SHELL, L"集成到鼠标右键菜单(M)");
 
     AppendMenuW(mHelp, MF_STRING, IDM_HELP_TOPIC, L"帮助主题(H)\tF1");
     AppendMenuW(mHelp, MF_SEPARATOR, 0, NULL);
@@ -422,6 +424,97 @@ static void RunTestJob(HWND owner, const std::wstring& arcPath)
         L"Mcser", ok ? MB_ICONINFORMATION : MB_ICONERROR);
 }
 
+// ==================== 资源管理器右键菜单集成 ====================
+static std::wstring DirOfFile(const std::wstring& path)
+{
+    size_t pos = path.find_last_of(L"\\/");
+    return pos == std::wstring::npos ? L"." : path.substr(0, pos);
+}
+
+static bool ShellVerbInstalled()
+{
+    HKEY key = NULL;
+    if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Classes\\*\\shell\\McserAdd",
+            0, KEY_READ, &key) != ERROR_SUCCESS)
+        return false;
+    RegCloseKey(key);
+    return true;
+}
+
+static void RegWriteString(HKEY root, const std::wstring& sub, const wchar_t* name,
+    const std::wstring& value)
+{
+    HKEY key = NULL;
+    if (RegCreateKeyExW(root, sub.c_str(), 0, NULL, 0, KEY_WRITE, NULL, &key, NULL)
+            != ERROR_SUCCESS)
+        return;
+    RegSetValueExW(key, name, 0, REG_SZ, (const BYTE*)value.c_str(),
+        (DWORD)((value.size() + 1) * sizeof(wchar_t)));
+    RegCloseKey(key);
+}
+
+static void RegRemoveKey(HKEY root, const std::wstring& sub)
+{
+    RegDeleteTreeW(root, sub.c_str());
+    RegDeleteKeyW(root, sub.c_str());
+}
+
+static void SetShellIntegration(bool install)
+{
+    wchar_t module[MAX_PATH] = {};
+    GetModuleFileNameW(NULL, module, MAX_PATH);
+    const std::wstring exePath = module;
+    const std::wstring addCmd = L"\"" + exePath + L"\" -a \"%1\"";
+    const std::wstring addDirCmd = L"\"" + exePath + L"\" -a \"%V\"";
+    const std::wstring extCmd = L"\"" + exePath + L"\" -x \"%1\"";
+
+    const std::wstring addKeys[] = {
+        L"Software\\Classes\\*\\shell\\McserAdd",
+        L"Software\\Classes\\Directory\\shell\\McserAdd",
+    };
+    const std::wstring bgKey = L"Software\\Classes\\Directory\\Background\\shell\\McserAdd";
+    const std::wstring extKeys[] = {
+        L"Software\\Classes\\.7z\\shell\\McserExtract",
+        L"Software\\Classes\\.zip\\shell\\McserExtract",
+        L"Software\\Classes\\.rar\\shell\\McserExtract",
+    };
+
+    if (install) {
+        for (const auto& k : addKeys) {
+            RegWriteString(HKEY_CURRENT_USER, k, NULL, L"添加到 Mcser 压缩包");
+            RegWriteString(HKEY_CURRENT_USER, k + L"\\command", NULL, addCmd);
+        }
+        RegWriteString(HKEY_CURRENT_USER, bgKey, NULL, L"添加到 Mcser 压缩包");
+        RegWriteString(HKEY_CURRENT_USER, bgKey + L"\\command", NULL, addDirCmd);
+        for (const auto& k : extKeys) {
+            RegWriteString(HKEY_CURRENT_USER, k, NULL, L"使用 Mcser 解压...");
+            RegWriteString(HKEY_CURRENT_USER, k + L"\\command", NULL, extCmd);
+        }
+    } else {
+        for (const auto& k : addKeys) RegRemoveKey(HKEY_CURRENT_USER, k);
+        RegRemoveKey(HKEY_CURRENT_USER, bgKey);
+        for (const auto& k : extKeys) RegRemoveKey(HKEY_CURRENT_USER, k);
+    }
+}
+
+// 首次运行自动注册右键菜单；用户手动关闭后不再自动注册
+static void AutoRegisterShellMenu()
+{
+    wchar_t buf[8] = {};
+    DWORD size = sizeof(buf);
+    if (RegGetValueW(HKEY_CURRENT_USER, L"Software\\Mcser", L"ShellMenu",
+            RRF_RT_REG_SZ, NULL, buf, &size) == ERROR_SUCCESS && buf[0] == L'0')
+        return;
+    SetShellIntegration(true);
+}
+
+static void SetShellMenuEnabled(bool enabled)
+{
+    SetShellIntegration(enabled);
+    RegWriteString(HKEY_CURRENT_USER, L"Software\\Mcser", L"ShellMenu",
+        enabled ? L"1" : L"0");
+}
+
 // ==================== 主窗口过程 ====================
 static LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -450,6 +543,10 @@ static LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
         int parts[] = { 230, 400, 640, -1 };
         SendMessageW(status, SB_SETPARTS, 4, (LPARAM)parts);
         SendMessageW(status, SB_SETTEXTW, 3, (LPARAM)L"就绪");
+        SendMessageW(status, SB_SETTEXTW, 2, (LPARAM)L"可拖入文件或压缩包");
+
+        // 接受从资源管理器拖入
+        DragAcceptFiles(hwnd, TRUE);
 
         SendMessageW(list, WM_SETFONT, (WPARAM)g_font, TRUE);
         SendMessageW(status, WM_SETFONT, (WPARAM)g_font, TRUE);
@@ -471,6 +568,35 @@ static LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
         LayoutMain(hwnd);
         return 0;
 
+    case WM_DROPFILES: {
+        HDROP drop = (HDROP)wParam;
+        UINT count = DragQueryFileW(drop, 0xFFFFFFFF, NULL, 0);
+        std::vector<std::wstring> items;
+        std::vector<std::wstring> files;
+        for (UINT i = 0; i < count; i++) {
+            wchar_t buf[MAX_PATH] = {};
+            if (!DragQueryFileW(drop, i, buf, MAX_PATH)) continue;
+            items.push_back(buf);
+            DWORD attr = GetFileAttributesW(buf);
+            if (attr == INVALID_FILE_ATTRIBUTES || !(attr & FILE_ATTRIBUTE_DIRECTORY))
+                files.push_back(buf);
+        }
+        DragFinish(drop);
+
+        bool allArchives = !files.empty();
+        for (const auto& f : files)
+            if (!IsArchiveName(f)) { allArchives = false; break; }
+
+        if (allArchives) {
+            ShowExtractDialog(hwnd, files[0]);
+            SendMessageW(GetDlgItem(hwnd, IDC_STATUS), SB_SETTEXTW, 3, (LPARAM)L"已打开压缩包");
+        } else if (!items.empty()) {
+            ShowAddDialog(hwnd, items, DirOfFile(items[0]));
+            SendMessageW(GetDlgItem(hwnd, IDC_STATUS), SB_SETTEXTW, 3, (LPARAM)L"已新建压缩任务");
+        }
+        RefreshFileList(hwnd);
+        return 0;
+    }
     case WM_COMMAND: {
         int id = LOWORD(wParam);
         switch (id) {
@@ -525,7 +651,27 @@ static LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
         case IDM_CMD_INFO: case IDC_TOOL_INFO:
         case IDM_CMD_REPAIR: case IDC_TOOL_REPAIR:
         case IDM_CMD_CONVERT: case IDM_TOOL_SFX: case IDM_TOOL_REPORT:
-        case IDM_TOOL_BENCH: case IDM_FAV_ADD: case IDM_FAV_MANAGE:
+        case IDM_TOOL_BENCH: case IDM_FAV_ADD: case IDM_FAV_MANAGE: {
+            MessageBoxW(hwnd, L"该功能将在后续版本中提供。", L"Mcser - 开发中",
+                MB_ICONINFORMATION | MB_OK);
+            break;
+        }
+        case IDM_OPT_SHELL: {
+            if (ShellVerbInstalled()) {
+                SetShellMenuEnabled(false);
+                MessageBoxW(hwnd, L"已从鼠标右键菜单中移除 Mcser 菜单项。", L"Mcser",
+                    MB_ICONINFORMATION | MB_OK);
+            } else {
+                SetShellMenuEnabled(true);
+                MessageBoxW(hwnd,
+                    L"已添加到鼠标右键菜单：\n\n"
+                    L"· 添加到 Mcser 压缩包（文件 / 文件夹）\n"
+                    L"· 使用 Mcser 解压...（.7z / .zip / .rar）\n\n"
+                    L"提示：Windows 11 需要点击“显示更多选项”才能看到。",
+                    L"Mcser", MB_ICONINFORMATION | MB_OK);
+            }
+            break;
+        }
         case IDM_OPT_SETTINGS: case IDM_OPT_IMPORTEXPORT: case IDM_OPT_PROFILES:
         case IDM_HELP_TOPIC: case IDM_HELP_LICENSE: case IDM_FILE_ADDFOLDER:
         case IDM_FILE_EMAIL:
@@ -616,6 +762,27 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int nCmdShow)
 
     ShowWindow(g_hMainWnd, nCmdShow);
     UpdateWindow(g_hMainWnd);
+
+    AutoRegisterShellMenu();
+
+    // 右键菜单 / 命令行调用: -x <压缩包> 解压, -a <文件|文件夹>... 新建压缩
+    int argc = 0;
+    LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+    if (argv) {
+        if (argc >= 3) {
+            std::wstring mode = argv[1];
+            if (mode == L"-x" || mode == L"-X") {
+                ShowExtractDialog(g_hMainWnd, argv[2]);
+            } else if (mode == L"-a" || mode == L"-A") {
+                std::vector<std::wstring> items;
+                for (int i = 2; i < argc; i++) items.push_back(argv[i]);
+                if (!items.empty())
+                    ShowAddDialog(g_hMainWnd, items, DirOfFile(items[0]));
+            }
+            RefreshFileList(g_hMainWnd);
+        }
+        LocalFree(argv);
+    }
 
     MSG msg;
     while (GetMessageW(&msg, NULL, 0, 0)) {

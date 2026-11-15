@@ -15,13 +15,18 @@ LIBS     := -luser32 -lgdi32 -lcomctl32 -lcomdlg32 -lshell32 \
             -lole32 -loleaut32 -lshlwapi -luxtheme -lwinmm -ladvapi32 -lmpr
 
 APP_SRCS := src/main.cpp src/dialogs.cpp src/icons.cpp src/engine.cpp src/progress.cpp
-APP_OBJS := $(patsubst src/%.cpp,$(OBJ)/app_%.o,$(APP_SRCS))
+APP_OBJS := $(patsubst src/%.cpp,$(OBJ)/app_%.o,$(APP_SRCS)) $(OBJ)/app_rc.o
 
 include sdk_sources.mk
 
 $(OBJ)/app_%.o: src/%.cpp
 	@mkdir -p $(dir $@)
 	$(ZIG) c++ $(CXXFLAGS) -I. -c $< -o $@
+
+# 应用清单：启用 comctl32 v6 视觉样式（扁平化控件）
+$(OBJ)/app_rc.o: src/app.rc src/app.manifest
+	@mkdir -p $(dir $@)
+	$(ZIG) rc src/app.rc $@
 
 # cli_test 是控制台程序, 不带 -municode
 $(OBJ)/app_cli_test.o: src/cli_test.cpp

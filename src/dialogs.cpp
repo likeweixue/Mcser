@@ -87,11 +87,9 @@
 #define IDC_E_CLOSE      1211
 #define IDC_E_HELP       1212
 
-static const wchar_t* DLG_CLASS = L"McserDlgWnd";
-
 struct AddDlgData {
     EngineCompressOptions opts;
-    std::vector<HWND> pageCtrls[5];  // 每个页签的全部控件
+    std::vector<HWND> pageCtrls[6];  // 每个页签的全部控件
     HWND tab;
     std::wstring pendingPw;
     bool pwEncNames = false;
@@ -183,6 +181,20 @@ static void ApplyFont(HWND parent)
         SendMessageW(c, WM_SETFONT, (WPARAM)SendMessageW(parent, WM_GETFONT, 0, 0), TRUE);
         c = GetWindow(c, GW_HWNDNEXT);
     }
+}
+
+// ==================== 对话框窗口类 ====================
+static void EnsureDlgClass(const wchar_t* cls, WNDPROC proc)
+{
+    WNDCLASSEXW wc = {};
+    wc.cbSize = sizeof(wc);
+    if (GetClassInfoExW(g_hInst, cls, &wc)) return;
+    wc.lpfnWndProc = proc;
+    wc.hInstance = g_hInst;
+    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+    wc.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
+    wc.lpszClassName = cls;
+    RegisterClassExW(&wc);
 }
 
 // ==================== 压缩面板 ====================
@@ -282,18 +294,18 @@ static void CreateAddPages(HWND dlg, AddDlgData* d)
 
     // ---------- 页签控件 ----------
     HWND tab = Ctl(dlg, WC_TABCONTROLW, L"", WS_TABSTOP,
-        8, 62, 444, 26, IDC_A_TAB);
+        8, 10, 432, 28, IDC_A_TAB);
     d->tab = tab;
     TCITEMW ti = {};
     ti.mask = TCIF_TEXT;
-    const wchar_t* names[] = { L"常规", L"高级", L"文件", L"时间", L"注释" };
-    for (int i = 0; i < 5; i++) {
+    const wchar_t* names[] = { L"常规", L"选项", L"高级", L"文件", L"时间", L"注释" };
+    for (int i = 0; i < 6; i++) {
         ti.pszText = (LPWSTR)names[i];
         SendMessageW(tab, TCM_INSERTITEMW, i, (LPARAM)&ti);
     }
 
-    const int cx = 10, cy = 94;   // 页内容左上角
-    const int W = 446;            // 单栏内容宽度
+    const int cx = 10, cy = 108;  // 页内容左上角（页签栏在最上方）
+    const int W = 432;            // 单栏内容宽度
 
     // ---------- 页 0: 常规（单栏） ----------
     curPage = 0;
@@ -337,18 +349,21 @@ static void CreateAddPages(HWND dlg, AddDlgData* d)
     for (auto u : upd) AddComboItem(GetDlgItem(dlg, IDC_A_UPDATE), u);
     SetComboSel(GetDlgItem(dlg, IDC_A_UPDATE), 0);
 
-    add(GROUP_BOX(dlg, L"压缩选项", cx, cy + 288, W, 140, 0));
-    add(CHECKBOX(dlg, L"压缩后删除源文件(D)", cx + 10, cy + 306, 200, 18, IDC_A_DELSRC));
-    add(CHECKBOX(dlg, L"创建自解压格式压缩文件(X)", cx + 10, cy + 326, 220, 18, IDC_A_SFX));
-    add(CHECKBOX(dlg, L"创建固实压缩文件(S)", cx + 10, cy + 346, 200, 18, IDC_A_SOLID));
-    add(CHECKBOX(dlg, L"测试压缩的文件(T)", cx + 10, cy + 366, 200, 18, IDC_A_TEST));
-    add(CHECKBOX(dlg, L"锁定压缩文件(L)", cx + 10, cy + 386, 200, 18, IDC_A_LOCK));
+    add(BUTTON(dlg, L"设置密码(P)...", cx, cy + 290, W, 26, IDC_A_PWBTN));
+    add(STATIC_TXT(dlg, L"未设置密码", cx + 2, cy + 320, W - 4, 18, IDC_A_PWINFO));
 
-    add(BUTTON(dlg, L"设置密码(P)...", cx, cy + 436, W, 26, IDC_A_PWBTN));
-    add(STATIC_TXT(dlg, L"未设置密码", cx + 2, cy + 466, W - 4, 18, IDC_A_PWINFO));
-
-    // ---------- 页 1: 高级 ----------
+    // ---------- 页 1: 选项 ----------
     curPage = 1;
+    add(GROUP_BOX(dlg, L"压缩选项", cx, cy, W, 140, 0));
+    add(CHECKBOX(dlg, L"压缩后删除源文件(D)", cx + 10, cy + 20, 200, 18, IDC_A_DELSRC));
+    add(CHECKBOX(dlg, L"创建自解压格式压缩文件(X)", cx + 10, cy + 40, 220, 18, IDC_A_SFX));
+    add(CHECKBOX(dlg, L"创建固实压缩文件(S)", cx + 10, cy + 60, 200, 18, IDC_A_SOLID));
+    add(CHECKBOX(dlg, L"测试压缩的文件(T)", cx + 10, cy + 80, 200, 18, IDC_A_TEST));
+    add(CHECKBOX(dlg, L"锁定压缩文件(L)", cx + 10, cy + 100, 200, 18, IDC_A_LOCK));
+    add(STATIC_TXT(dlg, L"以上选项仅在本次压缩任务中生效", cx, cy + 150, W, 18, 0));
+
+    // ---------- 页 2: 高级 ----------
+    curPage = 2;
     add(GROUP_BOX(dlg, L"压缩", cx, cy, W, 90, 0));
     add(STATIC_TXT(dlg, L"CPU 线程数(T):", cx + 10, cy + 22, 95, 18, 0));
     add(COMBOBOX(dlg, cx + 105, cy + 19, 80, 200, IDC_A_THREADS));
@@ -379,8 +394,8 @@ static void CreateAddPages(HWND dlg, AddDlgData* d)
     add(CHECKBOX(dlg, L"保存文件流(T)", cx + 10, cy + 296, 170, 18, IDC_A_NTFSSTREAM));
     add(CHECKBOX(dlg, L"保存硬链接(L)", cx + 10, cy + 316, 170, 18, IDC_A_NTFSHARD));
 
-    // ---------- 页 2: 文件 ----------
-    curPage = 2;
+    // ---------- 页 3: 文件 ----------
+    curPage = 3;
     add(STATIC_TXT(dlg, L"要添加的文件(A):", cx, cy, 100, 18, 0));
     add(BUTTON(dlg, L"追加(A)...", cx + W - 80, cy - 3, 80, 24, IDC_A_ADDFILES));
     add(Ctl(dlg, L"LISTBOX", L"", WS_TABSTOP | LBS_NOTIFY | WS_VSCROLL,
@@ -406,8 +421,8 @@ static void CreateAddPages(HWND dlg, AddDlgData* d)
     add(CHECKBOX(dlg, L"子文件夹中的文件按相对路径存储", cx + 10, cy + 256, 300, 18, IDC_A_RELPATH));
     add(CHECKBOX(dlg, L"压缩完成后删除已压缩文件", cx + 10, cy + 276, 300, 18, IDC_A_DELAFTER));
 
-    // ---------- 页 3: 时间 ----------
-    curPage = 3;
+    // ---------- 页 4: 时间 ----------
+    curPage = 4;
     add(GROUP_BOX(dlg, L"存储文件时间", cx, cy, W, 52, 0));
     add(Ctl(dlg, L"BUTTON", L"修改时间", BS_AUTORADIOBUTTON | WS_TABSTOP | WS_GROUP,
         cx + 10, cy + 20, 80, 18, IDC_A_TMOD));
@@ -431,8 +446,8 @@ static void CreateAddPages(HWND dlg, AddDlgData* d)
     add(RADIO(dlg, L"原始压缩文件时间", cx + 260, cy + 140, 130, 18, IDC_A_ARC_ORIG));
     SendMessageW(GetDlgItem(dlg, IDC_A_ARC_SYS), BM_SETCHECK, BST_CHECKED, 0);
 
-    // ---------- 页 4: 注释 ----------
-    curPage = 4;
+    // ---------- 页 5: 注释 ----------
+    curPage = 5;
     add(STATIC_TXT(dlg, L"压缩文件注释(U):", cx, cy, 120, 18, 0));
     add(Ctl(dlg, L"EDIT", L"",
         WS_TABSTOP | ES_MULTILINE | ES_WANTRETURN | ES_AUTOVSCROLL | WS_VSCROLL | WS_EX_CLIENTEDGE,
@@ -441,7 +456,7 @@ static void CreateAddPages(HWND dlg, AddDlgData* d)
     add(STATIC_TXT(dlg, L"", cx, cy + 180, W, 40, IDC_A_COMMENTNOTE));
 
     // 初始只显示页 0
-    for (int i = 1; i < 5; i++)
+    for (int i = 1; i < 6; i++)
         for (HWND h : p[i]) ShowWindow(h, SW_HIDE);
 }
 
@@ -602,7 +617,7 @@ static LRESULT CALLBACK AddDlgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
         NMHDR* nm = (NMHDR*)lParam;
         if (d && nm->idFrom == IDC_A_TAB && nm->code == TCN_SELCHANGE) {
             int cur = TabCtrl_GetCurSel(d->tab);
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 6; i++)
                 for (HWND h : d->pageCtrls[i])
                     ShowWindow(h, i == cur ? SW_SHOW : SW_HIDE);
             return 0;
@@ -658,29 +673,33 @@ void ShowAddDialog(HWND owner, const std::vector<std::wstring>& files, const std
     else
         data.opts.arcPath = baseDir + L"\\Archive.7z";
 
+    EnsureDlgClass(L"McserAddDlg", AddDlgProc);
     HWND dlg = CreateWindowExW(WS_EX_DLGMODALFRAME | WS_EX_CONTROLPARENT,
-        DLG_CLASS, L"压缩文件名和参数",
+        L"McserAddDlg", L"压缩文件名和参数",
         WS_CAPTION | WS_SYSMENU | WS_POPUP,
-        0, 0, 472, 664, owner, NULL, g_hInst, NULL);
-    if (!dlg) return;
+        0, 0, 460, 538, owner, NULL, g_hInst, NULL);
+    if (!dlg) {
+        MessageBoxW(owner, L"无法创建压缩面板。", L"Mcser", MB_ICONERROR);
+        return;
+    }
 
     SetWindowLongPtrW(dlg, GWLP_USERDATA, (LONG_PTR)&data);
     SendMessageW(dlg, WM_SETFONT, (WPARAM)CreateUiFont(), TRUE);
 
-    // 压缩文件名行
-    STATIC_TXT(dlg, L"压缩文件名(A):", 10, 10, 90, 18, 0);
-    EDITBOX(dlg, data.opts.arcPath.c_str(), 100, 8, 272, 22, IDC_A_ARCNAME, 0);
-    BUTTON(dlg, L"浏览(B)...", 376, 7, 80, 24, IDC_A_BROWSE);
+    // 压缩文件名行（页签栏下方）
+    STATIC_TXT(dlg, L"压缩文件名(A):", 10, 48, 90, 18, 0);
+    EDITBOX(dlg, data.opts.arcPath.c_str(), 100, 46, 258, 22, IDC_A_ARCNAME, 0);
+    BUTTON(dlg, L"浏览(B)...", 364, 45, 80, 24, IDC_A_BROWSE);
     // 配置文件行
-    STATIC_TXT(dlg, L"配置文件:", 10, 38, 60, 18, 0);
-    BUTTON(dlg, L"配置文件(F)... ▾", 70, 34, 120, 22, IDC_A_PROFILE);
+    STATIC_TXT(dlg, L"配置文件:", 10, 76, 60, 18, 0);
+    BUTTON(dlg, L"配置文件(F)... ▾", 70, 72, 120, 22, IDC_A_PROFILE);
 
     CreateAddPages(dlg, &data);
 
     // 底部按钮
-    BUTTON(dlg, L"确定", 108, 600, 78, 24, IDOK);
-    BUTTON(dlg, L"取消", 194, 600, 78, 24, IDCANCEL);
-    BUTTON(dlg, L"帮助", 280, 600, 78, 24, IDC_A_HELP);
+    BUTTON(dlg, L"确定", 102, 472, 78, 24, IDOK);
+    BUTTON(dlg, L"取消", 188, 472, 78, 24, IDCANCEL);
+    BUTTON(dlg, L"帮助", 274, 472, 78, 24, IDC_A_HELP);
     SendMessageW(dlg, DM_SETDEFID, IDOK, 0);
 
     ApplyFont(dlg);
@@ -800,11 +819,15 @@ void ShowPasswordDialog(HWND owner)
     data.allowEncNames = !zip;
     data.allowZipCrypto = zip;
 
+    EnsureDlgClass(L"McserPwDlg", PwDlgProc);
     HWND dlg = CreateWindowExW(WS_EX_DLGMODALFRAME | WS_EX_CONTROLPARENT,
-        DLG_CLASS, L"设置密码",
+        L"McserPwDlg", L"设置密码",
         WS_CAPTION | WS_SYSMENU | WS_POPUP,
         0, 0, 366, 292, owner, NULL, g_hInst, NULL);
-    if (!dlg) return;
+    if (!dlg) {
+        MessageBoxW(owner, L"无法创建密码面板。", L"Mcser", MB_ICONERROR);
+        return;
+    }
 
     SetWindowLongPtrW(dlg, GWLP_USERDATA, (LONG_PTR)&data);
     SendMessageW(dlg, WM_SETFONT, (WPARAM)CreateUiFont(), TRUE);
@@ -914,11 +937,15 @@ void ShowExtractDialog(HWND owner, const std::wstring& arcPath)
     data.opts.destDir = GetDirOfPath(arcPath) + L"\\" +
         StripExtPath(GetFileNameOfPath(arcPath)) + L"\\";
 
+    EnsureDlgClass(L"McserExtractDlg", ExtractDlgProc);
     HWND dlg = CreateWindowExW(WS_EX_DLGMODALFRAME | WS_EX_CONTROLPARENT,
-        DLG_CLASS, L"解压路径和选项",
+        L"McserExtractDlg", L"解压路径和选项",
         WS_CAPTION | WS_SYSMENU | WS_POPUP,
-        0, 0, 432, 402, owner, NULL, g_hInst, NULL);
-    if (!dlg) return;
+        0, 0, 432, 352, owner, NULL, g_hInst, NULL);
+    if (!dlg) {
+        MessageBoxW(owner, L"无法创建解压面板。", L"Mcser", MB_ICONERROR);
+        return;
+    }
 
     SetWindowLongPtrW(dlg, GWLP_USERDATA, (LONG_PTR)&data);
     SendMessageW(dlg, WM_SETFONT, (WPARAM)CreateUiFont(), TRUE);
@@ -927,30 +954,30 @@ void ShowExtractDialog(HWND owner, const std::wstring& arcPath)
     EDITBOX(dlg, data.opts.destDir.c_str(), 92, 10, 240, 22, IDC_E_DEST, 0);
     BUTTON(dlg, L"显示(D)...", 338, 9, 80, 24, IDC_E_BROWSE);
 
-    GROUP_BOX(dlg, L"更新方式", 12, 42, 402, 72, 0);
+    GROUP_BOX(dlg, L"更新方式", 12, 42, 402, 64, 0);
     Ctl(dlg, L"BUTTON", L"解压并替换文件", BS_AUTORADIOBUTTON | WS_TABSTOP | WS_GROUP,
         22, 62, 120, 18, IDC_E_UREPL);
     RADIO(dlg, L"解压并更新文件", 22, 84, 120, 18, IDC_E_UUPDATE);
     RADIO(dlg, L"仅更新已存在的文件", 180, 62, 150, 18, IDC_E_UONLY);
     SendMessageW(GetDlgItem(dlg, IDC_E_UREPL), BM_SETCHECK, BST_CHECKED, 0);
 
-    GROUP_BOX(dlg, L"覆盖方式", 12, 122, 402, 90, 0);
+    GROUP_BOX(dlg, L"覆盖方式", 12, 114, 402, 82, 0);
     Ctl(dlg, L"BUTTON", L"覆盖前询问", BS_AUTORADIOBUTTON | WS_TABSTOP | WS_GROUP,
-        22, 142, 100, 18, IDC_E_ASK);
-    RADIO(dlg, L"无提示直接覆盖", 22, 164, 120, 18, IDC_E_OVER);
-    RADIO(dlg, L"跳过已存在的文件", 180, 142, 130, 18, IDC_E_SKIP);
-    RADIO(dlg, L"自动重命名", 180, 164, 100, 18, IDC_E_RENAME);
+        22, 132, 100, 18, IDC_E_ASK);
+    RADIO(dlg, L"无提示直接覆盖", 22, 154, 120, 18, IDC_E_OVER);
+    RADIO(dlg, L"跳过已存在的文件", 180, 132, 130, 18, IDC_E_SKIP);
+    RADIO(dlg, L"自动重命名", 180, 154, 100, 18, IDC_E_RENAME);
     SendMessageW(GetDlgItem(dlg, IDC_E_ASK), BM_SETCHECK, BST_CHECKED, 0);
 
-    GROUP_BOX(dlg, L"其他", 12, 220, 402, 70, 0);
-    CHECKBOX(dlg, L"解压后打开目标文件夹", 22, 240, 160, 18, IDC_E_OPEN);
-    CHECKBOX(dlg, L"保留损坏的文件", 22, 260, 130, 18, IDC_E_KEEPBROKEN);
-    CHECKBOX(dlg, L"解压完成时关闭对话框", 200, 240, 160, 18, IDC_E_CLOSE);
+    GROUP_BOX(dlg, L"其他", 12, 204, 402, 64, 0);
+    CHECKBOX(dlg, L"解压后打开目标文件夹", 22, 222, 160, 18, IDC_E_OPEN);
+    CHECKBOX(dlg, L"保留损坏的文件", 22, 242, 130, 18, IDC_E_KEEPBROKEN);
+    CHECKBOX(dlg, L"解压完成时关闭对话框", 200, 222, 160, 18, IDC_E_CLOSE);
     SendMessageW(GetDlgItem(dlg, IDC_E_OPEN), BM_SETCHECK, BST_CHECKED, 0);
 
-    BUTTON(dlg, L"确定", 162, 304, 78, 24, IDOK);
-    BUTTON(dlg, L"取消", 248, 304, 78, 24, IDCANCEL);
-    BUTTON(dlg, L"帮助", 334, 304, 78, 24, IDC_E_HELP);
+    BUTTON(dlg, L"确定", 162, 284, 78, 24, IDOK);
+    BUTTON(dlg, L"取消", 248, 284, 78, 24, IDCANCEL);
+    BUTTON(dlg, L"帮助", 334, 284, 78, 24, IDC_E_HELP);
     SendMessageW(dlg, DM_SETDEFID, IDOK, 0);
 
     ApplyFont(dlg);
@@ -974,14 +1001,63 @@ void ShowExtractDialog(HWND owner, const std::wstring& arcPath)
 }
 
 // ==================== 关于 ====================
+static LRESULT CALLBACK AboutDlgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    switch (msg) {
+    case WM_COMMAND:
+        if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
+            DestroyWindow(hwnd);
+        return 0;
+    case WM_CLOSE:
+        DestroyWindow(hwnd);
+        return 0;
+    case WM_ERASEBKGND: {
+        RECT rc;
+        GetClientRect(hwnd, &rc);
+        FillRect((HDC)wParam, &rc, GetSysColorBrush(COLOR_BTNFACE));
+        return 1;
+    }
+    case WM_NOTIFY: {
+        NMHDR* nm = (NMHDR*)lParam;
+        if (nm->code == NM_CLICK || nm->code == NM_RETURN) {
+            NMLINK* link = (NMLINK*)lParam;
+            if (link->item.szUrl[0])
+                ShellExecuteW(hwnd, L"open", link->item.szUrl, NULL, NULL, SW_SHOWNORMAL);
+        }
+        return 0;
+    }
+    }
+    return DefWindowProcW(hwnd, msg, wParam, lParam);
+}
+
 void ShowAboutDialog(HWND owner)
 {
-    MessageBoxW(owner,
-        L"Mcser 1.1.0 (64 位)\n"
-        L"免费开源的压缩 / 解压软件\n\n"
-        L"解压: RAR · 7z · ZIP · TAR · GZIP · BZ2 · XZ\n"
-        L"压缩: 7z · ZIP（支持 AES-256 加密）\n\n"
-        L"基于 7-Zip SDK (LGPL) / unRAR\n"
-        L"© 2026 Mcser Team",
-        L"关于 Mcser", MB_ICONINFORMATION | MB_OK);
+    EnsureDlgClass(L"McserAboutDlg", AboutDlgProc);
+    HWND dlg = CreateWindowExW(WS_EX_DLGMODALFRAME | WS_EX_CONTROLPARENT,
+        L"McserAboutDlg", L"关于 Mcser",
+        WS_CAPTION | WS_SYSMENU | WS_POPUP,
+        0, 0, 424, 306, owner, NULL, g_hInst, NULL);
+    if (!dlg) return;
+
+    SendMessageW(dlg, WM_SETFONT, (WPARAM)CreateUiFont(), TRUE);
+
+    STATIC_TXT(dlg, APP_TITLE, 22, 18, 380, 22, 0);
+    STATIC_TXT(dlg, L"免费开源的压缩 / 解压软件", 22, 46, 380, 18, 0);
+    STATIC_TXT(dlg, L"解压: RAR · 7z · ZIP · TAR · GZIP · BZ2 · XZ", 22, 74, 380, 18, 0);
+    STATIC_TXT(dlg, L"压缩: 7z · ZIP（支持 AES-256 加密）", 22, 96, 380, 18, 0);
+    STATIC_TXT(dlg, L"基于 7-Zip SDK (LGPL) / unRAR", 22, 124, 380, 18, 0);
+
+    HWND gh = Ctl(dlg, L"SysLink",
+        L"GitHub: <a href=\"https://github.com/likeweixue/Mcser\">https://github.com/likeweixue/Mcser</a>",
+        WS_CHILD | WS_VISIBLE | WS_TABSTOP, 22, 158, 380, 20, 0);
+    HWND blog = Ctl(dlg, L"SysLink",
+        L"博客: <a href=\"https://mcser.me/\">https://mcser.me/</a>",
+        WS_CHILD | WS_VISIBLE | WS_TABSTOP, 22, 182, 380, 20, 0);
+    SendMessageW(gh, WM_SETFONT, (WPARAM)SendMessageW(dlg, WM_GETFONT, 0, 0), TRUE);
+    SendMessageW(blog, WM_SETFONT, (WPARAM)SendMessageW(dlg, WM_GETFONT, 0, 0), TRUE);
+
+    STATIC_TXT(dlg, L"© 2026 Mcser Team", 22, 212, 250, 18, 0);
+    BUTTON(dlg, L"确定", 166, 240, 88, 26, IDOK);
+
+    RunModal(dlg, owner);
 }
