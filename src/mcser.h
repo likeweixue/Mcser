@@ -9,8 +9,8 @@
 #include <vector>
 
 #define APP_NAME     L"Mcser"
-#define APP_TITLE    L"Mcser 1.0.0 (64 位)"
-#define APP_VERSION  L"1.0.0"
+#define APP_TITLE    L"Mcser 1.1.0 (64 位)"
+#define APP_VERSION  L"1.1.0"
 
 #include "engine.h"
 

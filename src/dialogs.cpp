@@ -282,7 +282,7 @@ static void CreateAddPages(HWND dlg, AddDlgData* d)
 
     // ---------- 页签控件 ----------
     HWND tab = Ctl(dlg, WC_TABCONTROLW, L"", WS_TABSTOP,
-        8, 62, 420, 26, IDC_A_TAB);
+        8, 62, 444, 26, IDC_A_TAB);
     d->tab = tab;
     TCITEMW ti = {};
     ti.mask = TCIF_TEXT;
@@ -292,131 +292,130 @@ static void CreateAddPages(HWND dlg, AddDlgData* d)
         SendMessageW(tab, TCM_INSERTITEMW, i, (LPARAM)&ti);
     }
 
-    const int cx = 8, cy = 94;   // 页内容左上角
+    const int cx = 10, cy = 94;   // 页内容左上角
+    const int W = 446;            // 单栏内容宽度
 
-    // ---------- 页 0: 常规 ----------
+    // ---------- 页 0: 常规（单栏） ----------
     curPage = 0;
-    add(GROUP_BOX(dlg, L"压缩文件格式", cx, cy, 210, 62, 0));
+    add(GROUP_BOX(dlg, L"压缩文件格式", cx, cy, W, 54, 0));
     add(Ctl(dlg, L"BUTTON", L"7Z", BS_AUTORADIOBUTTON | WS_TABSTOP | WS_GROUP,
-        cx + 10, cy + 20, 55, 18, IDC_A_FMT7Z));
-    add(RADIO(dlg, L"ZIP", cx + 75, cy + 20, 55, 18, IDC_A_FMTZIP));
+        cx + 10, cy + 18, 55, 18, IDC_A_FMT7Z));
+    add(RADIO(dlg, L"ZIP", cx + 80, cy + 18, 55, 18, IDC_A_FMTZIP));
     SendMessageW(GetDlgItem(dlg, IDC_A_FMT7Z), BM_SETCHECK, BST_CHECKED, 0);
 
-    add(GROUP_BOX(dlg, L"压缩等级(C)", cx, cy + 70, 210, 108, 0));
-    add(COMBOBOX(dlg, cx + 10, cy + 90, 165, 200, IDC_A_LEVEL));
+    add(GROUP_BOX(dlg, L"压缩等级(C)", cx, cy + 62, W, 104, 0));
+    add(COMBOBOX(dlg, cx + 10, cy + 80, W - 20, 200, IDC_A_LEVEL));
     AddComboItem(GetDlgItem(dlg, IDC_A_LEVEL), L"仅打包（不压缩，速度最快）");
     AddComboItem(GetDlgItem(dlg, IDC_A_LEVEL), L"压缩好（快速）");
     AddComboItem(GetDlgItem(dlg, IDC_A_LEVEL), L"压缩较好（标准）");
     AddComboItem(GetDlgItem(dlg, IDC_A_LEVEL), L"压缩最好（极限）");
     SetComboSel(GetDlgItem(dlg, IDC_A_LEVEL), 2);
 
-    add(STATIC_TXT(dlg, L"字典大小(I):", cx + 10, cy + 122, 80, 18, 0));
-    add(COMBOBOX(dlg, cx + 88, cy + 119, 90, 200, IDC_A_DICT));
+    add(STATIC_TXT(dlg, L"字典大小(I):", cx + 10, cy + 108, 80, 18, 0));
+    add(COMBOBOX(dlg, cx + 96, cy + 105, 110, 200, IDC_A_DICT));
     FillDictCombo(GetDlgItem(dlg, IDC_A_DICT), false);
 
-    add(STATIC_TXT(dlg, L"单词大小(W):", cx + 10, cy + 147, 80, 18, 0));
-    add(COMBOBOX(dlg, cx + 88, cy + 144, 70, 200, IDC_A_WORD));
+    add(STATIC_TXT(dlg, L"单词大小(W):", cx + 10, cy + 133, 80, 18, 0));
+    add(COMBOBOX(dlg, cx + 96, cy + 130, 110, 200, IDC_A_WORD));
     const wchar_t* words[] = { L"8", L"16", L"32", L"48", L"64", L"96", L"128", L"256" };
     for (auto w : words) AddComboItem(GetDlgItem(dlg, IDC_A_WORD), w);
     SetComboSel(GetDlgItem(dlg, IDC_A_WORD), 4);
-    add(STATIC_TXT(dlg, L"字节", cx + 163, cy + 147, 40, 18, 0));
+    add(STATIC_TXT(dlg, L"字节", cx + 214, cy + 133, 40, 18, 0));
 
-    add(GROUP_BOX(dlg, L"分卷", cx, cy + 186, 210, 56, 0));
-    add(STATIC_TXT(dlg, L"切分为分卷(V), 大小:", cx + 10, cy + 206, 150, 18, 0));
-    add(COMBOBOX(dlg, cx + 10, cy + 226, 130, 200, IDC_A_VOLUME));
+    add(GROUP_BOX(dlg, L"分卷", cx, cy + 172, W, 52, 0));
+    add(STATIC_TXT(dlg, L"切分为分卷(V), 大小:", cx + 10, cy + 188, 150, 18, 0));
+    add(COMBOBOX(dlg, cx + 140, cy + 185, W - 150, 200, IDC_A_VOLUME));
     const wchar_t* vols[] = { L"自动检测", L"3.5\" 1.44 MB", L"700 MB - CD",
         L"4480 MB - DVD", L"100 MB", L"1 GB", L"2 GB", L"4 GB", L"自定义..." };
     for (auto v : vols) AddComboItem(GetDlgItem(dlg, IDC_A_VOLUME), v);
     SetComboSel(GetDlgItem(dlg, IDC_A_VOLUME), 0);
 
-    // 右列
-    int rx = cx + 222;
-    add(GROUP_BOX(dlg, L"更新方式(U)", rx, cy, 190, 50, 0));
-    add(COMBOBOX(dlg, rx + 10, cy + 20, 150, 200, IDC_A_UPDATE));
+    add(GROUP_BOX(dlg, L"更新方式(U)", cx, cy + 230, W, 52, 0));
+    add(COMBOBOX(dlg, cx + 10, cy + 243, W - 20, 200, IDC_A_UPDATE));
     const wchar_t* upd[] = { L"添加并替换文件", L"添加并更新文件",
         L"仅更新已存在的文件", L"同步压缩文件内容" };
     for (auto u : upd) AddComboItem(GetDlgItem(dlg, IDC_A_UPDATE), u);
     SetComboSel(GetDlgItem(dlg, IDC_A_UPDATE), 0);
 
-    add(GROUP_BOX(dlg, L"压缩选项", rx, cy + 58, 190, 130, 0));
-    add(CHECKBOX(dlg, L"压缩后删除源文件(D)", rx + 10, cy + 78, 165, 18, IDC_A_DELSRC));
-    add(CHECKBOX(dlg, L"创建自解压格式压缩文件(X)", rx + 10, cy + 98, 175, 18, IDC_A_SFX));
-    add(CHECKBOX(dlg, L"创建固实压缩文件(S)", rx + 10, cy + 118, 165, 18, IDC_A_SOLID));
-    add(CHECKBOX(dlg, L"测试压缩的文件(T)", rx + 10, cy + 138, 165, 18, IDC_A_TEST));
-    add(CHECKBOX(dlg, L"锁定压缩文件(L)", rx + 10, cy + 158, 165, 18, IDC_A_LOCK));
+    add(GROUP_BOX(dlg, L"压缩选项", cx, cy + 288, W, 140, 0));
+    add(CHECKBOX(dlg, L"压缩后删除源文件(D)", cx + 10, cy + 306, 200, 18, IDC_A_DELSRC));
+    add(CHECKBOX(dlg, L"创建自解压格式压缩文件(X)", cx + 10, cy + 326, 220, 18, IDC_A_SFX));
+    add(CHECKBOX(dlg, L"创建固实压缩文件(S)", cx + 10, cy + 346, 200, 18, IDC_A_SOLID));
+    add(CHECKBOX(dlg, L"测试压缩的文件(T)", cx + 10, cy + 366, 200, 18, IDC_A_TEST));
+    add(CHECKBOX(dlg, L"锁定压缩文件(L)", cx + 10, cy + 386, 200, 18, IDC_A_LOCK));
 
-    add(BUTTON(dlg, L"设置密码(P)...", rx, cy + 196, 190, 24, IDC_A_PWBTN));
-    add(STATIC_TXT(dlg, L"未设置密码", rx + 2, cy + 226, 185, 18, IDC_A_PWINFO));
+    add(BUTTON(dlg, L"设置密码(P)...", cx, cy + 436, W, 26, IDC_A_PWBTN));
+    add(STATIC_TXT(dlg, L"未设置密码", cx + 2, cy + 466, W - 4, 18, IDC_A_PWINFO));
 
     // ---------- 页 1: 高级 ----------
     curPage = 1;
-    add(GROUP_BOX(dlg, L"压缩", cx, cy, 406, 86, 0));
+    add(GROUP_BOX(dlg, L"压缩", cx, cy, W, 90, 0));
     add(STATIC_TXT(dlg, L"CPU 线程数(T):", cx + 10, cy + 22, 95, 18, 0));
-    add(COMBOBOX(dlg, cx + 105, cy + 19, 70, 200, IDC_A_THREADS));
+    add(COMBOBOX(dlg, cx + 105, cy + 19, 80, 200, IDC_A_THREADS));
     const wchar_t* th[] = { L"1", L"2", L"4", L"6", L"8", L"12", L"16" };
     for (auto t : th) AddComboItem(GetDlgItem(dlg, IDC_A_THREADS), t);
     SetComboSel(GetDlgItem(dlg, IDC_A_THREADS), 3);
 
-    add(STATIC_TXT(dlg, L"固实块大小(B):", cx + 10, cy + 50, 95, 18, 0));
-    add(COMBOBOX(dlg, cx + 105, cy + 47, 100, 200, IDC_A_SOLIDBLK));
+    add(STATIC_TXT(dlg, L"固实块大小(B):", cx + 10, cy + 48, 95, 18, 0));
+    add(COMBOBOX(dlg, cx + 105, cy + 45, 110, 200, IDC_A_SOLIDBLK));
     const wchar_t* sb[] = { L"非固实", L"4 MB", L"8 MB", L"16 MB", L"32 MB",
         L"64 MB", L"128 MB", L"256 MB", L"512 MB", L"1 GB", L"2 GB", L"4 GB" };
     for (auto s : sb) AddComboItem(GetDlgItem(dlg, IDC_A_SOLIDBLK), s);
     SetComboSel(GetDlgItem(dlg, IDC_A_SOLIDBLK), 4);
-    add(STATIC_TXT(dlg, L"仅 7z 格式支持", cx + 210, cy + 50, 120, 18, 0));
+    add(STATIC_TXT(dlg, L"仅 7z 格式支持", cx + 105, cy + 68, 140, 16, 0));
 
-    add(GROUP_BOX(dlg, L"加密", cx, cy + 94, 406, 56, 0));
-    add(BUTTON(dlg, L"设置密码(P)...", cx + 10, cy + 114, 110, 24, IDC_A_PWBTN2));
-    add(STATIC_TXT(dlg, L"未设置密码", cx + 130, cy + 118, 200, 18, IDC_A_PWINFO2));
-    add(STATIC_TXT(dlg, L"加密算法: AES-256 (ZIP 可选 ZipCrypto)", cx + 10, cy + 134, 260, 16, 0));
+    add(GROUP_BOX(dlg, L"加密", cx, cy + 100, W, 62, 0));
+    add(BUTTON(dlg, L"设置密码(P)...", cx + 10, cy + 120, 110, 24, IDC_A_PWBTN2));
+    add(STATIC_TXT(dlg, L"未设置密码", cx + 130, cy + 124, 300, 18, IDC_A_PWINFO2));
+    add(STATIC_TXT(dlg, L"加密算法: AES-256 (ZIP 可选 ZipCrypto)", cx + 10, cy + 142, 300, 14, 0));
 
-    add(GROUP_BOX(dlg, L"系统", cx, cy + 158, 406, 74, 0));
-    add(CHECKBOX(dlg, L"后台压缩(B)", cx + 10, cy + 178, 120, 18, IDC_A_BG));
-    add(CHECKBOX(dlg, L"压缩完成后关闭计算机(C)", cx + 10, cy + 198, 190, 18, IDC_A_SHUTDOWN));
-    add(CHECKBOX(dlg, L"压缩完成后休眠(H)", cx + 210, cy + 198, 160, 18, IDC_A_HIBERNATE));
+    add(GROUP_BOX(dlg, L"系统", cx, cy + 170, W, 78, 0));
+    add(CHECKBOX(dlg, L"后台压缩(B)", cx + 10, cy + 190, 150, 18, IDC_A_BG));
+    add(CHECKBOX(dlg, L"压缩完成后关闭计算机(C)", cx + 10, cy + 210, 200, 18, IDC_A_SHUTDOWN));
+    add(CHECKBOX(dlg, L"压缩完成后休眠(H)", cx + 10, cy + 230, 200, 18, IDC_A_HIBERNATE));
 
-    add(GROUP_BOX(dlg, L"NTFS 选项", cx, cy + 240, 406, 74, 0));
-    add(CHECKBOX(dlg, L"保存文件安全数据(S)", cx + 10, cy + 260, 150, 18, IDC_A_NTFSSEC));
-    add(CHECKBOX(dlg, L"保存文件流(T)", cx + 10, cy + 280, 150, 18, IDC_A_NTFSSTREAM));
-    add(CHECKBOX(dlg, L"保存硬链接(L)", cx + 210, cy + 260, 150, 18, IDC_A_NTFSHARD));
+    add(GROUP_BOX(dlg, L"NTFS 选项", cx, cy + 256, W, 78, 0));
+    add(CHECKBOX(dlg, L"保存文件安全数据(S)", cx + 10, cy + 276, 170, 18, IDC_A_NTFSSEC));
+    add(CHECKBOX(dlg, L"保存文件流(T)", cx + 10, cy + 296, 170, 18, IDC_A_NTFSSTREAM));
+    add(CHECKBOX(dlg, L"保存硬链接(L)", cx + 10, cy + 316, 170, 18, IDC_A_NTFSHARD));
 
     // ---------- 页 2: 文件 ----------
     curPage = 2;
     add(STATIC_TXT(dlg, L"要添加的文件(A):", cx, cy, 100, 18, 0));
+    add(BUTTON(dlg, L"追加(A)...", cx + W - 80, cy - 3, 80, 24, IDC_A_ADDFILES));
     add(Ctl(dlg, L"LISTBOX", L"", WS_TABSTOP | LBS_NOTIFY | WS_VSCROLL,
-        cx, cy + 20, 250, 80, IDC_A_ADDLIST));
+        cx, cy + 22, W, 80, IDC_A_ADDLIST));
     HWND lb = GetDlgItem(dlg, IDC_A_ADDLIST);
     SendMessageW(lb, LB_ADDSTRING, 0, (LPARAM)L"*（所有文件）");
     SendMessageW(lb, LB_ADDSTRING, 0, (LPARAM)L"*.doc; *.docx");
     SendMessageW(lb, LB_ADDSTRING, 0, (LPARAM)L"*.jpg; *.png; *.gif");
     SendMessageW(lb, LB_ADDSTRING, 0, (LPARAM)L"*.pdf");
     SendMessageW(lb, LB_SETCURSEL, 0, 0);
-    add(BUTTON(dlg, L"追加...", cx + 260, cy + 20, 70, 24, IDC_A_ADDFILES));
 
-    add(STATIC_TXT(dlg, L"要排除的文件(E):", cx, cy + 108, 100, 18, 0));
-    add(EDITBOX(dlg, L"*.tmp; *.bak; Thumbs.db", cx, cy + 128, 330, 22, IDC_A_EXCLUDE, 0));
+    add(STATIC_TXT(dlg, L"要排除的文件(E):", cx, cy + 112, 100, 18, 0));
+    add(EDITBOX(dlg, L"*.tmp; *.bak; Thumbs.db", cx, cy + 132, W, 22, IDC_A_EXCLUDE, 0));
 
-    add(STATIC_TXT(dlg, L"文件路径(P):", cx, cy + 158, 100, 18, 0));
-    add(COMBOBOX(dlg, cx, cy + 178, 170, 200, IDC_A_PATHMODE));
+    add(STATIC_TXT(dlg, L"文件路径(P):", cx, cy + 164, 100, 18, 0));
+    add(COMBOBOX(dlg, cx, cy + 184, 190, 200, IDC_A_PATHMODE));
     const wchar_t* pm[] = { L"存储相对路径", L"存储完整路径", L"不存储路径" };
     for (auto m : pm) AddComboItem(GetDlgItem(dlg, IDC_A_PATHMODE), m);
     SetComboSel(GetDlgItem(dlg, IDC_A_PATHMODE), 0);
 
-    add(GROUP_BOX(dlg, L"选项", cx, cy + 208, 406, 76, 0));
-    add(CHECKBOX(dlg, L"把每个文件放到单独的压缩文件中(T)", cx + 10, cy + 228, 240, 18, IDC_A_EACHFILE));
-    add(CHECKBOX(dlg, L"子文件夹中的文件按相对路径存储", cx + 10, cy + 248, 230, 18, IDC_A_RELPATH));
-    add(CHECKBOX(dlg, L"压缩完成后删除已压缩文件", cx + 260, cy + 228, 140, 18, IDC_A_DELAFTER));
+    add(GROUP_BOX(dlg, L"选项", cx, cy + 216, W, 84, 0));
+    add(CHECKBOX(dlg, L"把每个文件放到单独的压缩文件中(T)", cx + 10, cy + 236, 300, 18, IDC_A_EACHFILE));
+    add(CHECKBOX(dlg, L"子文件夹中的文件按相对路径存储", cx + 10, cy + 256, 300, 18, IDC_A_RELPATH));
+    add(CHECKBOX(dlg, L"压缩完成后删除已压缩文件", cx + 10, cy + 276, 300, 18, IDC_A_DELAFTER));
 
     // ---------- 页 3: 时间 ----------
     curPage = 3;
-    add(GROUP_BOX(dlg, L"存储文件时间", cx, cy, 406, 52, 0));
+    add(GROUP_BOX(dlg, L"存储文件时间", cx, cy, W, 52, 0));
     add(Ctl(dlg, L"BUTTON", L"修改时间", BS_AUTORADIOBUTTON | WS_TABSTOP | WS_GROUP,
         cx + 10, cy + 20, 80, 18, IDC_A_TMOD));
     add(RADIO(dlg, L"创建时间", cx + 110, cy + 20, 80, 18, IDC_A_TCREATE));
     add(RADIO(dlg, L"最近访问时间", cx + 210, cy + 20, 100, 18, IDC_A_TACCESS));
     SendMessageW(GetDlgItem(dlg, IDC_A_TMOD), BM_SETCHECK, BST_CHECKED, 0);
 
-    add(GROUP_BOX(dlg, L"包含文件", cx, cy + 60, 406, 52, 0));
+    add(GROUP_BOX(dlg, L"包含文件", cx, cy + 60, W, 52, 0));
     add(Ctl(dlg, L"BUTTON", L"任何时间", BS_AUTORADIOBUTTON | WS_TABSTOP | WS_GROUP,
         cx + 10, cy + 80, 80, 18, IDC_A_TANY));
     add(RADIO(dlg, L"修改早于", cx + 110, cy + 80, 80, 18, IDC_A_TBEFORE));
@@ -425,7 +424,7 @@ static void CreateAddPages(HWND dlg, AddDlgData* d)
     add(EDITBOX(dlg, L"2026-01-01", cx + 300, cy + 79, 100, 22, IDC_A_TDATE, 0));
     EnableWindow(GetDlgItem(dlg, IDC_A_TDATE), FALSE);
 
-    add(GROUP_BOX(dlg, L"设置压缩文件时间", cx, cy + 120, 406, 52, 0));
+    add(GROUP_BOX(dlg, L"设置压缩文件时间", cx, cy + 120, W, 52, 0));
     add(Ctl(dlg, L"BUTTON", L"当前系统时间", BS_AUTORADIOBUTTON | WS_TABSTOP | WS_GROUP,
         cx + 10, cy + 140, 100, 18, IDC_A_ARC_SYS));
     add(RADIO(dlg, L"最新文件时间", cx + 140, cy + 140, 100, 18, IDC_A_ARC_LATEST));
@@ -437,9 +436,9 @@ static void CreateAddPages(HWND dlg, AddDlgData* d)
     add(STATIC_TXT(dlg, L"压缩文件注释(U):", cx, cy, 120, 18, 0));
     add(Ctl(dlg, L"EDIT", L"",
         WS_TABSTOP | ES_MULTILINE | ES_WANTRETURN | ES_AUTOVSCROLL | WS_VSCROLL | WS_EX_CLIENTEDGE,
-        cx, cy + 20, 406, 120, IDC_A_COMMENT));
+        cx, cy + 20, W, 120, IDC_A_COMMENT));
     add(BUTTON(dlg, L"从文件加载注释(F)...", cx, cy + 148, 150, 24, IDC_A_COMMENTLD));
-    add(STATIC_TXT(dlg, L"", cx, cy + 180, 406, 40, IDC_A_COMMENTNOTE));
+    add(STATIC_TXT(dlg, L"", cx, cy + 180, W, 40, IDC_A_COMMENTNOTE));
 
     // 初始只显示页 0
     for (int i = 1; i < 5; i++)
@@ -662,7 +661,7 @@ void ShowAddDialog(HWND owner, const std::vector<std::wstring>& files, const std
     HWND dlg = CreateWindowExW(WS_EX_DLGMODALFRAME | WS_EX_CONTROLPARENT,
         DLG_CLASS, L"压缩文件名和参数",
         WS_CAPTION | WS_SYSMENU | WS_POPUP,
-        0, 0, 442, 560, owner, NULL, g_hInst, NULL);
+        0, 0, 472, 664, owner, NULL, g_hInst, NULL);
     if (!dlg) return;
 
     SetWindowLongPtrW(dlg, GWLP_USERDATA, (LONG_PTR)&data);
@@ -670,8 +669,8 @@ void ShowAddDialog(HWND owner, const std::vector<std::wstring>& files, const std
 
     // 压缩文件名行
     STATIC_TXT(dlg, L"压缩文件名(A):", 10, 10, 90, 18, 0);
-    EDITBOX(dlg, data.opts.arcPath.c_str(), 100, 8, 245, 22, IDC_A_ARCNAME, 0);
-    BUTTON(dlg, L"浏览(B)...", 352, 7, 80, 24, IDC_A_BROWSE);
+    EDITBOX(dlg, data.opts.arcPath.c_str(), 100, 8, 272, 22, IDC_A_ARCNAME, 0);
+    BUTTON(dlg, L"浏览(B)...", 376, 7, 80, 24, IDC_A_BROWSE);
     // 配置文件行
     STATIC_TXT(dlg, L"配置文件:", 10, 38, 60, 18, 0);
     BUTTON(dlg, L"配置文件(F)... ▾", 70, 34, 120, 22, IDC_A_PROFILE);
@@ -679,9 +678,9 @@ void ShowAddDialog(HWND owner, const std::vector<std::wstring>& files, const std
     CreateAddPages(dlg, &data);
 
     // 底部按钮
-    BUTTON(dlg, L"确定", 172, 505, 78, 24, IDOK);
-    BUTTON(dlg, L"取消", 258, 505, 78, 24, IDCANCEL);
-    BUTTON(dlg, L"帮助", 344, 505, 78, 24, IDC_A_HELP);
+    BUTTON(dlg, L"确定", 108, 600, 78, 24, IDOK);
+    BUTTON(dlg, L"取消", 194, 600, 78, 24, IDCANCEL);
+    BUTTON(dlg, L"帮助", 280, 600, 78, 24, IDC_A_HELP);
     SendMessageW(dlg, DM_SETDEFID, IDOK, 0);
 
     ApplyFont(dlg);
@@ -978,7 +977,7 @@ void ShowExtractDialog(HWND owner, const std::wstring& arcPath)
 void ShowAboutDialog(HWND owner)
 {
     MessageBoxW(owner,
-        L"Mcser 1.0.0 (64 位)\n"
+        L"Mcser 1.1.0 (64 位)\n"
         L"免费开源的压缩 / 解压软件\n\n"
         L"解压: RAR · 7z · ZIP · TAR · GZIP · BZ2 · XZ\n"
         L"压缩: 7z · ZIP（支持 AES-256 加密）\n\n"
